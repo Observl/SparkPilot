@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {diagnose,recommend,conclusion,blankProject,initialState,validateState} from '../domain.js';
+test('诊断缺失项计为零，按五个维度归一化',()=>{assert.equal(diagnose().score,0);assert.equal(diagnose({customer:3}).score,20);assert.equal(diagnose({customer:3,problem:3,value:3,channel:3,payment:3}).score,100);assert.equal(diagnose({customer:3}).weakest.id,'problem');});
+test('策略优先验证需求，其次渠道，再验证付款',()=>{assert.equal(recommend({}),'interview');assert.equal(recommend({customer:3,problem:2,channel:1}),'outreach');assert.equal(recommend({customer:3,problem:2,channel:2}),'pilot');});
+test('复盘仅对已完成实验对照目标',()=>{assert.equal(conclusion({status:'running'}),'待完成');assert.match(conclusion({status:'completed',actual:2,target:3}),/未达目标/);assert.match(conclusion({status:'completed',actual:3,target:3}),/达到目标/);});
+test('备份验证拒绝损坏数据及重复项目，接受新项目',()=>{const state=initialState();assert.equal(validateState(state),state);assert.throws(()=>validateState({version:2}));const invalid=structuredClone(state);invalid.projects[0].experiments[0].actual=-1;assert.throws(()=>validateState(invalid));const duplicate=structuredClone(state);duplicate.projects.push(duplicate.projects[0]);assert.throws(()=>validateState(duplicate));const a=blankProject();assert.equal(a.experiments.length,0);assert.equal(a.evidence.length,0);state.projects.push(a);assert.equal(validateState(state),state);});
